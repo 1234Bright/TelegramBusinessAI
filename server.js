@@ -203,8 +203,7 @@ bot.onText(/\/addproduct/, async (msg) => {
         "Send product details like this:\n\nName, Description, Price, Stock\n\nExample:\n\niPhone 15, New Apple phone, 5000, 3"
     );
 
-
-    bot.once("message", async (reply)=>{
+const handler = async (reply) => {
 
 
         const data = reply.text.split(",");
@@ -234,7 +233,10 @@ bot.onText(/\/addproduct/, async (msg) => {
         );
 
 
-    });
+  bot.removeListener("message", handler);
+};
+
+bot.on("message", handler);
 
 
 });
@@ -296,7 +298,7 @@ bot.onText(/\/updateproduct/, async (msg) => {
         "Send:\n\nProduct Name, New Price, New Stock\n\nExample:\nSmart Watch, 500, 15"
     );
 
-    bot.once("message", async (reply) => {
+   const handler = async (reply) => {
 
         const data = reply.text.split(",");
 
@@ -327,8 +329,10 @@ bot.onText(/\/updateproduct/, async (msg) => {
             "Product updated successfully ✅"
         );
 
-    });
+    bot.removeListener("message", handler);
+};
 
+bot.on("message", handler);
 });
 
 
@@ -424,64 +428,145 @@ Status: ${order.status}
 
 
 
-
-
 // AI Chat Messages
 bot.on("message", async (msg) => {
 
     const text = msg.text;
 
+    // Ignore non-text messages
+    if (!text) {
+        return;
+    }
+
     const userId = msg.chat.id.toString();
 
     console.log("MESSAGE RECEIVED:", text);
 
-// Ignore admin messages
-if(userId === process.env.ADMIN_ID){
-    return;
-}
+    // Ignore admin messages
+    if (userId === process.env.ADMIN_ID) {
+        return;
+    }
 
-   if (text === "/start") {
-    return;
-}
+    // Ignore start command
+    if (text === "/start") {
+        return;
+    }
 
     try {
 
+        // Detect buying intent
+        if (
+            text.toLowerCase().includes("buy") ||
+            text.toLowerCase().includes("order") ||
+            text.toLowerCase().includes("purchase")
+        ) {
 
-// Detect buying intent
+            const products = await Product.find();
 
-if (
-    text.toLowerCase().includes("buy") ||
-    text.toLowerCase().includes("order") ||
-    text.toLowerCase().includes("purchase")
-) {
+            const product = products.find(p =>
+                text.toLowerCase().includes(
+                    p.name.toLowerCase()
+                )
+            );
 
-    const products = await Product.find();
+            if (product) {
 
-    const product = products.find(p =>
-        text.toLowerCase().includes(
-            p.name.toLowerCase()
-        )
-    );
+                orderStates[userId] = {
+                    step: "quantity",
+                    productName: product.name
+                };
 
-    if(product){
+                return bot.sendMessage(
+                    msg.chat.id,
+                    `Great! How many units of ${product.name} would you like to buy?`
+                );
 
-        orderStates[userId] = {
+            }
 
-            step: "quantity",
+        }
 
-            productName: product.name
+        // Save Customer Message
+        await Chat.create({
+            chatId: msg.chat.id.toString(),
+            username: msg.from.username || "Unknown",
+            firstName: msg.from.first_name || "",
+            message: text
+        });
 
-        };
+        console.log("Message Saved To MongoDB");
 
-        return bot.sendMessage(
+        // Load Products
+        const products = await Product.find();
+
+        let productInfo = products.map(product => {
+
+            return `
+Name: ${product.name}
+Description: ${product.description}
+Price: GHS ${product.price}
+Stock: ${product.stock}
+`;
+
+        }).join("\n");
+
+        // Gemini AI
+        const result = await model.generateContent(`
+
+You are Bright Electronics AI Sales Assistant.
+
+Your job is to help customers find products and encourage sales.
+
+Products:
+
+${productInfo}
+
+Customer Message:
+
+${text}
+
+Rules:
+
+- Reply like a friendly human sales representative
+- Keep responses short
+- Mention product prices when relevant
+- Recommend suitable products
+- Encourage customers to place orders
+- If a product is unavailable, say so
+- Do not invent products
+- Be professional and helpful
+
+`);
+
+        const response = result.response.text();
+
+        await bot.sendMessage(
             msg.chat.id,
-            `Great! How many units of ${product.name} would you like to buy?`
+            response
         );
+
+    } catch (error) {
+
+        console.log("========== GEMINI ERROR ==========");
+        console.log(error);
+        console.log("==================================");
+
+        try {
+
+            await bot.sendMessage(
+                msg.chat.id,
+                "Sorry, I am having trouble responding right now."
+            );
+
+        } catch (sendError) {
+
+            console.log("TELEGRAM SEND ERROR:");
+            console.log(sendError);
+
+        }
 
     }
 
-}
-
+});
 
 
         // Save Customer Message
@@ -546,15 +631,25 @@ Rules:
 
     } catch (error) {
 
-        console.log("Gemini Error:");
-        console.log(error);
+    console.log("========== GEMINI ERROR ==========");
+    console.log(error);
+    console.log("==================================");
+
+    try {
 
         await bot.sendMessage(
             msg.chat.id,
             "Sorry, I am having trouble responding right now."
         );
 
+    } catch(e) {
+
+        console.log("Telegram Send Error:");
+        console.log(e);
+
     }
+
+}
 });
 
 
