@@ -108,18 +108,44 @@ bot.onText(/\/start/, (msg) => {
 
     console.log("START FROM:", msg.chat.id);
 
-    bot.sendMessage(
-        msg.chat.id,
-        `Welcome to Bright Electronics AI 🤖
+    const userId = msg.chat.id.toString();
 
-How can I help you today?
+    // ADMIN
+    if(userId === process.env.ADMIN_ID){
 
-Available Commands:
+        return bot.sendMessage(
+            msg.chat.id,
+            `Admin Panel
 
 /products
-/help`
-    );
+/addproduct
+/updateproduct
+/deleteproduct
+/orders
+/testadmin`
+        );
 
+    }
+
+
+
+
+
+    
+    // CUSTOMER
+bot.sendMessage(
+    msg.chat.id,
+    `👋 Welcome to Bright Electronics.
+
+I can help you:
+
+• Find products
+• Check prices
+• Answer questions
+• Place orders
+
+Just send me a message and I'll assist you.`
+);
 });
 
 
@@ -129,6 +155,10 @@ Available Commands:
 
 // Products Command
 bot.onText(/\/products/, async (msg) => {
+
+    if(msg.chat.id.toString() !== process.env.ADMIN_ID){
+        return;
+    }
 
     const products = await Product.find();
 
@@ -380,14 +410,14 @@ Status: ${order.status}
 
 
 
-// Help Command
-bot.onText(/\/help/, (msg) => {
+// // Help Command
+// bot.onText(/\/help/, (msg) => {
 
-    bot.sendMessage(
-        msg.chat.id,
-        `Ask me about our products and services.`
-    );
-});
+//     bot.sendMessage(
+//         msg.chat.id,
+//         `Ask me about our products and services.`
+//     );
+// });
 
 
 
@@ -410,13 +440,9 @@ if(userId === process.env.ADMIN_ID){
     return;
 }
 
-    if (
-        text === "/start" ||
-        text === "/products" ||
-        text === "/help"
-    ) {
-        return;
-    }
+   if (text === "/start") {
+    return;
+}
 
     try {
 
@@ -486,25 +512,28 @@ Stock: ${product.stock}
 
 const result = await model.generateContent(`
 
-You are Bright Electronics AI Assistant.
+You are Bright Electronics AI Sales Assistant.
 
-Use the product information below to answer customers.
+Your job is to help customers find products and encourage sales.
 
 Products:
 
 ${productInfo}
 
-
 Customer Message:
 
 ${text}
 
-
 Rules:
-- Answer professionally
-- Keep replies short
-- If product is not available say so
+
+- Reply like a friendly human sales representative
+- Keep responses short
+- Mention product prices when relevant
+- Recommend suitable products
+- Encourage customers to place orders
+- If a product is unavailable, say so
 - Do not invent products
+- Be professional and helpful
 
 `);
 
