@@ -82,6 +82,21 @@ const bot = new TelegramBot(token, {
 });
 console.log("Bot is running...");
 
+// DEBUG
+bot.on("polling_error", (error) => {
+    console.log("POLLING ERROR:");
+    console.log(error);
+});
+
+bot.getMe()
+.then((info) => {
+    console.log("BOT INFO:");
+    console.log(info);
+})
+.catch((err) => {
+    console.log("BOT ERROR:");
+    console.log(err);
+});
 
 
 
