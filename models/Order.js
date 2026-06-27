@@ -2,48 +2,44 @@ const mongoose = require("mongoose");
 
 const orderSchema = new mongoose.Schema({
 
+    channelMessageId: Number, 
 
-customerId: {
-    type: String,
-    required: true
-},
+    telegramId: Number,
 
-customerName: {
-    type: String,
-    required: true
-},
+    customerName: String,
 
-productName: {
-    type: String,
-    required: true
-},
+  items: [
+    {
+        productName: String,
+        quantity: Number,
+        price: Number
+    }
+],
 
-quantity: {
-    type: Number,
-    required: true
-},
+    phone: String,
 
-phone: {
-    type: String,
-    default: ""
-},
+    address: String,
 
-location: {
-    type: String,
-    default: ""
-},
+    paymentMethod: String,
 
-status: {
-    type: String,
-    default: "Pending"
-},
+    totalAmount: Number,
 
-createdAt: {
-    type: Date,
-    default: Date.now
-}
+    status: {
 
+        type: String,
+
+        default: "Pending"
+
+    }
+
+}, {
+
+    timestamps: true
 
 });
 
-module.exports = mongoose.model("Order", orderSchema);
+module.exports =
+    mongoose.model(
+        "Order",
+        orderSchema
+    );
